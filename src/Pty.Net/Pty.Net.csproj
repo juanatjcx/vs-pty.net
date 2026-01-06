@@ -21,12 +21,6 @@
       <PackagePath>build\</PackagePath>
     </None>
   </ItemGroup>
-  
-  <ItemGroup>
-    <ProjectReference Include="..\OSS.Sign\OSS.Sign.csproj">
-      <PrivateAssets>all</PrivateAssets>
-    </ProjectReference>
-  </ItemGroup>
 
   <Target Name="CollectNugetFiles" BeforeTargets="_GetPackageFiles">
     <ItemGroup>

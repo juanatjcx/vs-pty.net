@@ -24,14 +24,19 @@ namespace Pty.Net.Mac
         /// <inheritdoc/>
         protected override bool Kill(int fd)
         {
-            return ioctl(fd, TIOCSIG, SIGHUP) != -1;
+            // Use the native shim to avoid variadic ioctl issues on ARM64 macOS.
+            // See: https://github.com/dotnet/runtime/issues/48752
+            return pty_send_signal(fd, SIGHUP) != -1;
         }
 
         /// <inheritdoc/>
         protected override bool Resize(int fd, int cols, int rows)
         {
-            var size = new WinSize((ushort)rows, (ushort)cols);
-            return ioctl(fd, TIOCSWINSZ, ref size) != -1;
+            // Use the native shim to avoid variadic ioctl issues on ARM64 macOS.
+            // The old code: ioctl(fd, TIOCSWINSZ, ref size) corrupts PTY state on Apple Silicon
+            // because ioctl is a variadic function and P/Invoke doesn't handle varargs correctly.
+            // See: https://github.com/dotnet/runtime/issues/48752
+            return pty_set_window_size(fd, (ushort)rows, (ushort)cols) != -1;
         }
 
         /// <inheritdoc/>

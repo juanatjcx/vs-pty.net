@@ -22,6 +22,11 @@ namespace Pty.Net.Mac
 
         private const string LibSystem = "libSystem.dylib";
 
+        // Native shim library for variadic ioctl calls on ARM64 macOS.
+        // See: https://github.com/dotnet/runtime/issues/48752
+        // P/Invoke to variadic functions (like ioctl) doesn't work on Apple Silicon.
+        private const string LibPtyShim = "libpty_shim";
+
         private static readonly int SizeOfIntPtr = Marshal.SizeOf(typeof(IntPtr));
 
         public enum TermSpeed : uint
@@ -202,6 +207,35 @@ namespace Pty.Net.Mac
 
         [DllImport(LibSystem, SetLastError = true)]
         internal static extern int kill(int pid, int signal);
+
+        // ============================================================================
+        // Native shim functions for variadic ioctl calls on ARM64 macOS.
+        // These wrap ioctl calls in non-variadic functions that P/Invoke can handle.
+        // ============================================================================
+
+        /// <summary>
+        /// Set PTY window size (non-variadic wrapper for ioctl TIOCSWINSZ).
+        /// </summary>
+        [DllImport(LibPtyShim, SetLastError = true)]
+        internal static extern int pty_set_window_size(int fd, ushort rows, ushort cols);
+
+        /// <summary>
+        /// Get PTY window size (non-variadic wrapper for ioctl TIOCGWINSZ).
+        /// </summary>
+        [DllImport(LibPtyShim, SetLastError = true)]
+        internal static extern int pty_get_window_size(int fd, out ushort rows, out ushort cols);
+
+        /// <summary>
+        /// Send signal to PTY (non-variadic wrapper for ioctl TIOCSIG).
+        /// </summary>
+        [DllImport(LibPtyShim, SetLastError = true)]
+        internal static extern int pty_send_signal(int fd, int signal);
+
+        /// <summary>
+        /// Get errno after a shim call (since Marshal.GetLastWin32Error may not work).
+        /// </summary>
+        [DllImport(LibPtyShim)]
+        internal static extern int pty_get_errno();
 
         internal static void execvpe(string file, string?[] args, IDictionary<string, string> environment)
         {

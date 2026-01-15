@@ -118,7 +118,6 @@ namespace Pty.Net.Unix
 
         private void ChildWatcherThreadProc()
         {
-            Console.WriteLine($"Waiting on {this.pid}");
             const int SignalMask = 127;
             const int ExitCodeMask = 255;
 
@@ -126,7 +125,6 @@ namespace Pty.Net.Unix
             if (!this.WaitPid(this.pid, ref status))
             {
                 int errno = Marshal.GetLastWin32Error();
-                Console.WriteLine($"Wait failed with {errno}");
                 if (errno == EINTR)
                 {
                     this.ChildWatcherThreadProc();

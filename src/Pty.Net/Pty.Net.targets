@@ -1,9 +1,10 @@
-﻿<Project>
+<Project>
+  <!-- Windows ConPty files -->
   <ItemGroup>
-    <ConPtyFiles Condition="'$(PlatformTarget)' != '' And '$(PlatformTarget)' != 'AnyCPU'" 
+    <ConPtyFiles Condition="'$(PlatformTarget)' != '' And '$(PlatformTarget)' != 'AnyCPU'"
                  Include="$(MSBuildThisFileDirectory)\$(PlatformTarget)\**\*" />
   </ItemGroup>
-  
+
   <Target Name="CopyPtyNativeFiles">
     <Copy SourceFiles="@(ConPtyFiles)" DestinationFiles="$(OutDir)\%(RecursiveDir)\%(FileName)%(Extension)" />
   </Target>
@@ -18,4 +19,23 @@
       CopyPtyNativeFiles;
     </BuildDependsOn>
   </PropertyGroup>
+
+  <!-- macOS native shim library -->
+  <Target Name="CopyMacOSNativeShim"
+          AfterTargets="Build"
+          Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <PropertyGroup>
+      <PtyNetDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildThisFileFullPath)'))</PtyNetDir>
+      <NativeShimSource>$(PtyNetDir)\..\..\..\bin\Pty.Net\Debug\netstandard2.0\libpty_shim.dylib</NativeShimSource>
+    </PropertyGroup>
+
+    <Copy SourceFiles="$(NativeShimSource)"
+          DestinationFolder="$(OutDir)"
+          Condition="Exists('$(NativeShimSource)')"
+          SkipUnchangedFiles="true" />
+
+    <Message Importance="High"
+             Text="Copied libpty_shim.dylib to $(OutDir)"
+             Condition="Exists('$(NativeShimSource)')" />
+  </Target>
 </Project>

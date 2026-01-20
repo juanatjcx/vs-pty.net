@@ -216,24 +216,36 @@ namespace Pty.Net.Mac
         /// <summary>
         /// Set PTY window size (non-variadic wrapper for ioctl TIOCSWINSZ).
         /// </summary>
+        /// <param name="fd">File descriptor of the PTY master.</param>
+        /// <param name="rows">Number of rows.</param>
+        /// <param name="cols">Number of columns.</param>
+        /// <returns>0 on success, -1 on error (check errno).</returns>
         [DllImport(LibPtyShim, SetLastError = true)]
         internal static extern int pty_set_window_size(int fd, ushort rows, ushort cols);
 
         /// <summary>
         /// Get PTY window size (non-variadic wrapper for ioctl TIOCGWINSZ).
         /// </summary>
+        /// <param name="fd">File descriptor of the PTY master.</param>
+        /// <param name="rows">Output: number of rows.</param>
+        /// <param name="cols">Output: number of columns.</param>
+        /// <returns>0 on success, -1 on error (check errno).</returns>
         [DllImport(LibPtyShim, SetLastError = true)]
         internal static extern int pty_get_window_size(int fd, out ushort rows, out ushort cols);
 
         /// <summary>
-        /// Send signal to PTY (non-variadic wrapper for ioctl TIOCSIG).
+        /// Send signal to PTY foreground process group (non-variadic wrapper for ioctl TIOCSIG).
         /// </summary>
+        /// <param name="fd">File descriptor of the PTY master.</param>
+        /// <param name="signal">Signal number to send (e.g., SIGHUP).</param>
+        /// <returns>0 on success, -1 on error (check errno).</returns>
         [DllImport(LibPtyShim, SetLastError = true)]
         internal static extern int pty_send_signal(int fd, int signal);
 
         /// <summary>
         /// Get errno after a shim call (since Marshal.GetLastWin32Error may not work).
         /// </summary>
+        /// <returns>Current errno value.</returns>
         [DllImport(LibPtyShim)]
         internal static extern int pty_get_errno();
 

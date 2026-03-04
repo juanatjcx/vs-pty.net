@@ -103,4 +103,33 @@
       <Link>libpty_shim.dylib</Link>
     </Content>
   </ItemGroup>
+
+  <!-- ============================================================================
+       Linux native PTY spawn
+       Performs forkpty + chdir + exec in pure C to avoid running managed code
+       in a forked child process (which segfaults on .NET because the GC and
+       threadpool threads don't survive fork).
+       ============================================================================ -->
+  <Target Name="BuildNativeSpawnLinux"
+          BeforeTargets="Build"
+          Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <PropertyGroup>
+      <NativeSpawnSource>$(MSBuildThisFileDirectory)Native/pty_spawn_linux.c</NativeSpawnSource>
+      <NativeSpawnOutput>$(OutputPath)libpty_spawn_linux.so</NativeSpawnOutput>
+    </PropertyGroup>
+
+    <Exec Command="gcc -shared -fPIC -o '$(NativeSpawnOutput)' '$(NativeSpawnSource)' -lutil"
+          Condition="!Exists('$(NativeSpawnOutput)')" />
+
+    <Message Importance="High" Text="Built native PTY spawn: $(NativeSpawnOutput)" Condition="!Exists('$(NativeSpawnOutput)')" />
+  </Target>
+
+  <!-- Ensure native library is copied to consuming projects on Linux -->
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <Content Include="$(OutputPath)libpty_spawn_linux.so"
+             Condition="Exists('$(OutputPath)libpty_spawn_linux.so')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>libpty_spawn_linux.so</Link>
+    </Content>
+  </ItemGroup>
 </Project>

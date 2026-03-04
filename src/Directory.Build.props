@@ -18,15 +18,7 @@
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
   </PropertyGroup>
 
-  <ItemGroup>
-    <!-- MicroBuild.VisualStudio disabled - requires authenticated Azure DevOps feed, only needed for MS internal signing -->
-    <!-- <PackageReference Include="MicroBuild.VisualStudio" Version="2.0.55" PrivateAssets="all" /> -->
-    <!-- Nerdbank.GitVersioning disabled - causes issues in submodule detached HEAD state -->
-    <!-- <PackageReference Include="Nerdbank.GitVersioning" Version="3.0.25" PrivateAssets="all" /> -->
-    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" PrivateAssets="all" />
-  </ItemGroup>
-
-  <!-- Set a fixed version since GitVersioning is disabled -->
+  <!-- Set a fixed version since Nerdbank.GitVersioning is removed -->
   <PropertyGroup>
     <Version>0.5.0</Version>
     <AssemblyVersion>0.5.0.0</AssemblyVersion>

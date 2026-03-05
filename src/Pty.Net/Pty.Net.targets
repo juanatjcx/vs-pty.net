@@ -20,7 +20,7 @@
     </BuildDependsOn>
   </PropertyGroup>
 
-  <!-- macOS native shim library -->
+  <!-- macOS native shim library (build) -->
   <Target Name="CopyMacOSNativeShim"
           AfterTargets="Build"
           Condition="$([MSBuild]::IsOSPlatform('OSX'))">

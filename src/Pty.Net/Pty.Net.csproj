@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -25,7 +25,7 @@
   <Target Name="CollectNugetFiles" BeforeTargets="_GetPackageFiles">
     <ItemGroup>
       <OutputPtyFiles Include="$(RepoRootPath)\bin\winpty\**\*" />
-      
+
       <None Include="@(OutputPtyFiles)">
         <Pack>true</Pack>
         <PackagePath>build\</PackagePath>
@@ -65,5 +65,73 @@
         <PackagePath>build\x64\os64</PackagePath>
       </None>
     </ItemGroup>
+  </Target>
+
+  <!-- ============================================================================
+       macOS native shim for ARM64 variadic ioctl workaround
+       See: https://github.com/dotnet/runtime/issues/48752
+       P/Invoke to variadic functions doesn't work on Apple Silicon, so we compile
+       a native shim that wraps ioctl calls in non-variadic functions.
+       ============================================================================ -->
+  <Target Name="BuildNativeShimMacOS"
+          BeforeTargets="Build"
+          Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <PropertyGroup>
+      <NativeShimSource>$(MSBuildThisFileDirectory)Native/pty_shim.c</NativeShimSource>
+      <!-- Output directly to bin directory so P/Invoke can find it -->
+      <NativeShimOutput>$(OutputPath)libpty_shim.dylib</NativeShimOutput>
+    </PropertyGroup>
+
+    <!-- Compile universal binary (arm64 + x86_64) for both Apple Silicon and Intel Macs -->
+    <Exec Command="clang -dynamiclib -arch arm64 -arch x86_64 -install_name @loader_path/libpty_shim.dylib -o '$(NativeShimOutput)' '$(NativeShimSource)'"
+          Condition="!Exists('$(NativeShimOutput)')" />
+
+    <Message Importance="High" Text="Built native shim: $(NativeShimOutput)" Condition="!Exists('$(NativeShimOutput)')" />
+  </Target>
+
+  <!-- Ensure native library is copied to consuming projects on macOS.
+       ExcludeFromSingleFile keeps it as a loose file during PublishSingleFile. -->
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <Content Include="$(OutputPath)libpty_shim.dylib"
+             Condition="Exists('$(OutputPath)libpty_shim.dylib')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <Link>libpty_shim.dylib</Link>
+    </Content>
+  </ItemGroup>
+
+  <!-- ============================================================================
+       Linux native spawn library
+       Performs forkpty + chdir + exec in pure C to avoid running managed code
+       in the forked child process (which causes segfaults on .NET 10).
+       On glibc, forkpty is in libutil (-lutil). On musl, it's in libc.
+       ============================================================================ -->
+  <Target Name="BuildNativeSpawnLinux"
+          BeforeTargets="Build"
+          Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <PropertyGroup>
+      <NativeSpawnSource>$(MSBuildThisFileDirectory)Native/pty_spawn_linux.c</NativeSpawnSource>
+      <NativeSpawnOutput>$(OutputPath)libpty_spawn_linux.so</NativeSpawnOutput>
+    </PropertyGroup>
+
+    <!-- Try glibc (-lutil) first, fall back to musl/libc-only -->
+    <Exec Command="gcc -shared -fPIC -O2 -o '$(NativeSpawnOutput)' '$(NativeSpawnSource)' -lutil 2>/dev/null || gcc -shared -fPIC -O2 -o '$(NativeSpawnOutput)' '$(NativeSpawnSource)'"
+          Condition="!Exists('$(NativeSpawnOutput)')" />
+
+    <!-- Add as Content INSIDE the target so it's evaluated after compilation.
+         ExcludeFromSingleFile ensures the .so remains as a loose file alongside the
+         single-file executable during dotnet publish -p:PublishSingleFile=true
+         (native libraries cannot be embedded into the single-file bundle). -->
+    <ItemGroup>
+      <Content Include="$(NativeSpawnOutput)" Condition="Exists('$(NativeSpawnOutput)')">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+        <Link>libpty_spawn_linux.so</Link>
+      </Content>
+    </ItemGroup>
+
+    <Message Importance="High" Text="Built native spawn: $(NativeSpawnOutput)" Condition="Exists('$(NativeSpawnOutput)')" />
   </Target>
 </Project>

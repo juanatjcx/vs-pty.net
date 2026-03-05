@@ -1,9 +1,10 @@
-﻿<Project>
+<Project>
+  <!-- Windows ConPty files -->
   <ItemGroup>
-    <ConPtyFiles Condition="'$(PlatformTarget)' != '' And '$(PlatformTarget)' != 'AnyCPU'" 
+    <ConPtyFiles Condition="'$(PlatformTarget)' != '' And '$(PlatformTarget)' != 'AnyCPU'"
                  Include="$(MSBuildThisFileDirectory)\$(PlatformTarget)\**\*" />
   </ItemGroup>
-  
+
   <Target Name="CopyPtyNativeFiles">
     <Copy SourceFiles="@(ConPtyFiles)" DestinationFiles="$(OutDir)\%(RecursiveDir)\%(FileName)%(Extension)" />
   </Target>
@@ -18,4 +19,112 @@
       CopyPtyNativeFiles;
     </BuildDependsOn>
   </PropertyGroup>
+
+  <!-- macOS native shim library -->
+  <Target Name="CopyMacOSNativeShim"
+          AfterTargets="Build"
+          Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <PropertyGroup>
+      <PtyNetDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildThisFileFullPath)'))</PtyNetDir>
+      <!-- Try current configuration first, fall back to Debug -->
+      <NativeShimSource>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(PtyNetDir)', '..', '..', 'bin', 'Pty.Net', '$(Configuration)', 'netstandard2.0', 'libpty_shim.dylib'))))</NativeShimSource>
+      <NativeShimSourceFallback>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(PtyNetDir)', '..', '..', 'bin', 'Pty.Net', 'Debug', 'netstandard2.0', 'libpty_shim.dylib'))))</NativeShimSourceFallback>
+    </PropertyGroup>
+
+    <Copy SourceFiles="$(NativeShimSource)"
+          DestinationFolder="$(OutDir)"
+          Condition="Exists('$(NativeShimSource)')"
+          SkipUnchangedFiles="true" />
+
+    <Copy SourceFiles="$(NativeShimSourceFallback)"
+          DestinationFolder="$(OutDir)"
+          Condition="!Exists('$(NativeShimSource)') And Exists('$(NativeShimSourceFallback)')"
+          SkipUnchangedFiles="true" />
+
+    <Message Importance="High"
+             Text="Copied libpty_shim.dylib to $(OutDir)"
+             Condition="Exists('$(NativeShimSource)') Or Exists('$(NativeShimSourceFallback)')" />
+  </Target>
+
+  <!-- Linux native spawn library (build) -->
+  <Target Name="CopyLinuxNativeSpawn"
+          AfterTargets="Build"
+          Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <PropertyGroup>
+      <PtyNetDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildThisFileFullPath)'))</PtyNetDir>
+      <!-- Try current configuration first, fall back to Debug -->
+      <NativeSpawnSource>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(PtyNetDir)', '..', '..', 'bin', 'Pty.Net', '$(Configuration)', 'netstandard2.0', 'libpty_spawn_linux.so'))))</NativeSpawnSource>
+      <NativeSpawnSourceFallback>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(PtyNetDir)', '..', '..', 'bin', 'Pty.Net', 'Debug', 'netstandard2.0', 'libpty_spawn_linux.so'))))</NativeSpawnSourceFallback>
+    </PropertyGroup>
+
+    <Copy SourceFiles="$(NativeSpawnSource)"
+          DestinationFolder="$(OutDir)"
+          Condition="Exists('$(NativeSpawnSource)')"
+          SkipUnchangedFiles="true" />
+
+    <Copy SourceFiles="$(NativeSpawnSourceFallback)"
+          DestinationFolder="$(OutDir)"
+          Condition="!Exists('$(NativeSpawnSource)') And Exists('$(NativeSpawnSourceFallback)')"
+          SkipUnchangedFiles="true" />
+
+    <Message Importance="High"
+             Text="Copied libpty_spawn_linux.so to $(OutDir)"
+             Condition="Exists('$(NativeSpawnSource)') Or Exists('$(NativeSpawnSourceFallback)')" />
+  </Target>
+
+  <!-- ======================================================================
+       Publish-time targets: ensure native libraries are copied to the publish
+       output directory. Build-time targets (AfterTargets="Build") don't run
+       during 'dotnet publish', so we need separate Publish targets.
+       ====================================================================== -->
+
+  <!-- macOS native shim (publish) -->
+  <Target Name="PublishMacOSNativeShim"
+          AfterTargets="Publish"
+          Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <PropertyGroup>
+      <PtyNetDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildThisFileFullPath)'))</PtyNetDir>
+      <NativeShimSource>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(PtyNetDir)', '..', '..', 'bin', 'Pty.Net', '$(Configuration)', 'netstandard2.0', 'libpty_shim.dylib'))))</NativeShimSource>
+      <NativeShimSourceFallback>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(PtyNetDir)', '..', '..', 'bin', 'Pty.Net', 'Debug', 'netstandard2.0', 'libpty_shim.dylib'))))</NativeShimSourceFallback>
+    </PropertyGroup>
+
+    <Copy SourceFiles="$(NativeShimSource)"
+          DestinationFolder="$(PublishDir)"
+          Condition="Exists('$(NativeShimSource)')"
+          SkipUnchangedFiles="true" />
+
+    <Copy SourceFiles="$(NativeShimSourceFallback)"
+          DestinationFolder="$(PublishDir)"
+          Condition="!Exists('$(NativeShimSource)') And Exists('$(NativeShimSourceFallback)')"
+          SkipUnchangedFiles="true" />
+
+    <Message Importance="High"
+             Text="Published libpty_shim.dylib to $(PublishDir)"
+             Condition="Exists('$(NativeShimSource)') Or Exists('$(NativeShimSourceFallback)')" />
+  </Target>
+
+  <!-- Linux native spawn (publish) -->
+  <Target Name="PublishLinuxNativeSpawn"
+          AfterTargets="Publish"
+          Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <PropertyGroup>
+      <PtyNetDir>$([System.IO.Path]::GetDirectoryName('$(MSBuildThisFileFullPath)'))</PtyNetDir>
+      <NativeSpawnSource>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(PtyNetDir)', '..', '..', 'bin', 'Pty.Net', '$(Configuration)', 'netstandard2.0', 'libpty_spawn_linux.so'))))</NativeSpawnSource>
+      <NativeSpawnSourceFallback>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(PtyNetDir)', '..', '..', 'bin', 'Pty.Net', 'Debug', 'netstandard2.0', 'libpty_spawn_linux.so'))))</NativeSpawnSourceFallback>
+    </PropertyGroup>
+
+    <Copy SourceFiles="$(NativeSpawnSource)"
+          DestinationFolder="$(PublishDir)"
+          Condition="Exists('$(NativeSpawnSource)')"
+          SkipUnchangedFiles="true" />
+
+    <Copy SourceFiles="$(NativeSpawnSourceFallback)"
+          DestinationFolder="$(PublishDir)"
+          Condition="!Exists('$(NativeSpawnSource)') And Exists('$(NativeSpawnSourceFallback)')"
+          SkipUnchangedFiles="true" />
+
+    <Message Importance="High"
+             Text="Published libpty_spawn_linux.so to $(PublishDir)"
+             Condition="Exists('$(NativeSpawnSource)') Or Exists('$(NativeSpawnSourceFallback)')" />
+  </Target>
 </Project>

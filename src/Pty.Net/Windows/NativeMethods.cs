@@ -127,25 +127,25 @@ namespace Pty.Net.Windows
         [DllImport("kernel32.dll")]
         internal static extern IntPtr GetProcAddress(IntPtr hModule, [MarshalAs(UnmanagedType.LPStr)] string procName);
 
-        [DllImport("os64\\conpty.dll", EntryPoint = "CreatePseudoConsole")]
+        [DllImport("kernel32.dll", EntryPoint = "CreatePseudoConsole")]
         [ReliabilityContract(Consistency.WillNotCorruptState, Cer.MayFail)]
         private static extern int CreatePseudoConsole64(Coord coord, IntPtr input, IntPtr output, uint flags, out IntPtr consoleHandle);
 
-        [DllImport("os64\\conpty.dll", EntryPoint = "ResizePseudoConsole")]
+        [DllImport("kernel32.dll", EntryPoint = "ResizePseudoConsole")]
         private static extern int ResizePseudoConsole64(SafePseudoConsoleHandle consoleHandle, Coord coord);
 
-        [DllImport("os64\\conpty.dll", EntryPoint = "ClosePseudoConsole")]
+        [DllImport("kernel32.dll", EntryPoint = "ClosePseudoConsole")]
         [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
         private static extern void ClosePseudoConsole64(IntPtr consoleHandle);
 
-        [DllImport("os86\\conpty.dll", EntryPoint = "CreatePseudoConsole")]
+        [DllImport("kernel32.dll", EntryPoint = "CreatePseudoConsole")]
         [ReliabilityContract(Consistency.WillNotCorruptState, Cer.MayFail)]
         private static extern int CreatePseudoConsole86(Coord coord, IntPtr input, IntPtr output, uint flags, out IntPtr consoleHandle);
 
-        [DllImport("os86\\conpty.dll", EntryPoint = "ResizePseudoConsole")]
+        [DllImport("kernel32.dll", EntryPoint = "ResizePseudoConsole")]
         private static extern int ResizePseudoConsole86(SafePseudoConsoleHandle consoleHandle, Coord coord);
 
-        [DllImport("os86\\conpty.dll", EntryPoint = "ClosePseudoConsole")]
+        [DllImport("kernel32.dll", EntryPoint = "ClosePseudoConsole")]
         [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
         private static extern void ClosePseudoConsole86(IntPtr consoleHandle);
 
